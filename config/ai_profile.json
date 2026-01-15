@@ -1,6 +1,5 @@
 {
   "api_configuration": {
-    "api_key": "",
     "model_name": "gemini-2.5-flash",
     "temperature": 0.2,
     "top_p": 0.95
