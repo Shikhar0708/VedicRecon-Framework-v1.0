@@ -4,11 +4,17 @@
     "temperature": 0.2,
     "top_p": 0.95
   },
+  "strategic_metrics": {
+    "primary_score": "VMS",
+    "score_range": "0-100",
+    "tone_binding": true
+  },
   "ai_constraints": {
     "assert_vulnerabilities": false,
     "claim_exploitability": false,
     "introduce_new_findings": false,
     "provide_payloads": false,
+    "speculate_on_internal_services": false,
     "confidence_language": "advisory_only"
   },
   "evidence_policy": {
@@ -23,25 +29,34 @@
   "profiles": {
     "strategic_architect": {
       "role": "Senior Infrastructure Architect & Risk Lead",
-      "focus": "Infrastructure patterns, defensive density, and tech stack consistency.",
-      "format": "Strategic Report with Executive Risk Ratings",
+      "focus": "Infrastructure patterns, defensive density, abstraction layers, and stack consistency.",
+      "format": "Strategic Security Report with Executive Risk Ratings",
       "requires_scrubbed_input": true
     },
     "red_team_specialist": {
       "role": "Lead Red Team Operator",
-      "focus": "Identifying attack surface gaps and misconfigurations.",
-      "format": "Technical Assessment of Observed Surface",
+      "focus": "Observed attack surface gaps, exposure asymmetries, and configuration weaknesses without bypass speculation.",
+      "format": "Technical Reconnaissance & Surface Assessment",
       "requires_scrubbed_input": true
     },
     "compliance_auditor": {
       "role": "IT Compliance Auditor",
-      "focus": "Mapping findings to NIST and ISO 27001 controls.",
-      "format": "Compliance Audit Spreadsheet Style",
+      "focus": "Mapping observed controls and gaps to NIST CSF, NIST 800-53, and ISO 27001 domains.",
+      "format": "Compliance-Oriented Audit Report (Spreadsheet Style)",
       "requires_scrubbed_input": true
     }
   },
   "output_controls": {
     "deterministic_language": true,
-    "max_recommendations_per_finding": 3
+    "max_recommendations_per_finding": 3,
+    "confidence_modulation": {
+      "edge_signals": "high",
+      "backend_inference": "low"
+    }
+  },
+  "recommendation_policy": {
+    "max_if_high_maturity": 1,
+    "max_if_medium_maturity": 3,
+    "max_if_low_maturity": 5
   }
 }

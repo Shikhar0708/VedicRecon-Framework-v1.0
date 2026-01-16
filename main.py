@@ -1,4 +1,4 @@
-VERSION = "1.0.0-alpha"
+VERSION = "1.0.1-alpha"
 
 import platform
 import sys
@@ -6,12 +6,13 @@ import subprocess
 from pathlib import Path
 import json
 import shutil
+import ctypes
 import os
-import time
 from src.logic_engine import run_logic_engine
 from src.scrubbing import run_scrubbing_phase
 from src.ai_handler import run_ai_reporting
 from src import display_legal_boundary, registry
+from src.vms_engine import calculate_vms
 
 # --- PATH CONFIGURATION ---
 BASE_DIR = Path(__file__).resolve().parent
@@ -35,6 +36,24 @@ YELLOW = "\033[93m"
 RED = "\033[91m"
 BOLD = "\033[1m"
 RESET = "\033[0m"
+
+def is_privileged():
+    """
+    Check if the script is running with elevated privileges (root on Linux/macOS, 
+    administrator on Windows).
+    """
+    system = platform.system()
+    
+    if system == "Windows":
+        try:
+            # Returns True if running with admin rights
+            return ctypes.windll.shell32.IsUserAnAdmin()
+        except Exception:
+            return False
+    else:
+        # On Linux/macOS, check for effective user ID 0 (root)
+        return os.geteuid() == 0
+
 
 def system_detection():
     current_os = platform.system()
@@ -126,20 +145,33 @@ def handoff_to_ai():
     print(f"{BLUE}[+]{RESET} Phase 7: Correlating infrastructure patterns...")
     analysis = run_logic_engine(registry.CSV_FILE, analysis_json)
 
+    if not isinstance(analysis, dict):
+        raise ValueError("Logic engine did not return analysis summary dict")
+
+    # ✅ Compute VMS ONCE, after analysis exists
+    vms_score = calculate_vms(analysis)
+
     # Trigger the VMS Gauge visually
-    if analysis and "target_registry_snapshot" in analysis:
-        # In Alpha, we display gauge for the primary discovery
-        # (Beta will iterate through all analyzed targets)
-        mock_vms = {"score": 75, "label": "DEVELOPING", "justifications": ["Edge Protected", "Potential Version Leak"]}
-        display_vms_gauge(mock_vms)
+    if "target_registry_snapshot" in analysis:
+        display_vms_gauge({
+            "score": vms_score,
+            "label": (
+                "EXCELLENT" if vms_score >= 80 else
+                "DEVELOPING" if vms_score >= 50 else
+                "CRITICAL"
+            ),
+            "justifications": ["Derived from observable infrastructure signals"]
+        })
 
     scrubbed_txt = OUTPUT_DIR / "scrubbed_analysis.txt"
     print(f"{BLUE}[+]{RESET} Phase 9: Anonymizing identifiers...")
     run_scrubbing_phase(analysis_json, scrubbed_txt, PRIVACY_JSON)
 
     print(f"{BLUE}[+]{RESET} Phase 10: Generating Intelligence Report...")
-    run_ai_reporting(scrubbed_txt, REPORTS_DIR, AI_PROFILE)
-    
+    print(f"{BLUE}[+]{RESET} Computed VMS Score: {vms_score}/100")
+
+    run_ai_reporting(scrubbed_txt, REPORTS_DIR, AI_PROFILE, vms_score)
+
     print(f"\n{GREEN}{BOLD}[!] Final Intelligence Report lodged in: {REPORTS_DIR}{RESET}")
 
 def display_vms_gauge(vms_data):
@@ -158,50 +190,53 @@ def display_vms_gauge(vms_data):
     print("")
 
 def main():
-    print(f"\n{CYAN}{BOLD}--- VedicRecon {VERSION} ---{RESET}")
-    os_type = system_detection()
+    if is_privileged():
+        print(f"\n{CYAN}{BOLD}--- VedicRecon {VERSION} ---{RESET}")
+        os_type = system_detection()
 
-    if not display_legal_boundary.check_status():
-        sys.exit(0)
+        if not display_legal_boundary.check_status():
+            sys.exit(0)
 
-    if not verify_required_tools(os_type):
-        sys.exit(1)
+        if not verify_required_tools(os_type):
+            sys.exit(1)
 
-    session_signal = registry.session_handler()
+        session_signal = registry.session_handler()
 
-    if session_signal == "RUN_NOW":
-        run_discovery_pipeline()
-        sys.exit(0)
-
-    while True:
-        print(f"\n{BOLD}[VedicRecon Station]{RESET}")
-        print("1. Add New Target(s)")
-        print("2. Run Pipeline on All Registered Targets")
-        print("3. Clear Workspace (/output)")
-        print("0. Exit")
-        
-        choice = input(f"\n{YELLOW}[?]{RESET} Select Option: ").strip()
-
-        if choice == "1":
-            raw_val = input(f"\n{YELLOW}[?]{RESET} Enter IP, CIDR, or File Path: ").strip()
-            from src.registry import parse_bulk_input
-            expanded_targets = parse_bulk_input(raw_val)
-            if expanded_targets:
-                targets_to_add = [{"Target_Name": f"Import_{i+1}", "Input_Value": t} for i, t in enumerate(expanded_targets)]
-                registry.add_targets_to_registry(targets_to_add)
-                if input(f"{YELLOW}[?]{RESET} Launch discovery pipeline now? (y/n): ").lower() == 'y':
-                    run_discovery_pipeline()
-                    break
-        elif choice == "2":
+        if session_signal == "RUN_NOW":
             run_discovery_pipeline()
-            break
-        elif choice == "3":
-            if input(f"{RED}[!] Clear all files in /output? (y/n): {RESET}").lower() == 'y':
-                for file in OUTPUT_DIR.glob('*'):
-                    if file.is_file(): file.unlink()
-                print(f"{GREEN}[+]{RESET} Workspace cleaned.")
-        elif choice == "0":
-            break
+            sys.exit(0)
+
+        while True:
+            print(f"\n{BOLD}[VedicRecon Station]{RESET}")
+            print("1. Add New Target(s)")
+            print("2. Run Pipeline on All Registered Targets")
+            print("3. Clear Workspace (/output)")
+            print("0. Exit")
+            
+            choice = input(f"\n{YELLOW}[?]{RESET} Select Option: ").strip()
+
+            if choice == "1":
+                raw_val = input(f"\n{YELLOW}[?]{RESET} Enter IP, CIDR, or File Path: ").strip()
+                from src.registry import parse_bulk_input
+                expanded_targets = parse_bulk_input(raw_val)
+                if expanded_targets:
+                    targets_to_add = [{"Target_Name": f"Import_{i+1}", "Input_Value": t} for i, t in enumerate(expanded_targets)]
+                    registry.add_targets_to_registry(targets_to_add)
+                    if input(f"{YELLOW}[?]{RESET} Launch discovery pipeline now? (y/n): ").lower() == 'y':
+                        run_discovery_pipeline()
+                        break
+            elif choice == "2":
+                run_discovery_pipeline()
+                break
+            elif choice == "3":
+                if input(f"{RED}[!] Clear all files in /output? (y/n): {RESET}").lower() == 'y':
+                    for file in OUTPUT_DIR.glob('*'):
+                        if file.is_file(): file.unlink()
+                    print(f"{GREEN}[+]{RESET} Workspace cleaned.")
+            elif choice == "0":
+                break
+    else:
+        print("[*] Admin/Root privilege is needed.")
 
 if __name__ == "__main__":
     main()
