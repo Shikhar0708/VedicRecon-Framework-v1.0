@@ -405,7 +405,7 @@ VedicRecon automatically executes:
 
 ***Registry***
 ```bash
-registry/targets.csv
+output/targets.csv
 ```
 ***Intelligence Reports***
 ```bash
