@@ -86,9 +86,30 @@ def run_discovery_pipeline():
         print(f"{RED}[!] Error: Go binary missing.{RESET}")
         return
 
-    # 1. Baseline Discovery
-    print(f"\n{BLUE}[*]{RESET} Running Aggressive Discovery (Phases 2, 4, 5)...")
-    stream_go_process([str(GO_BINARY), "--registry", str(registry.CSV_FILE)])
+    print(f"\n{BLUE}[*]{RESET} Discovery mode selection")
+
+    mode = input(
+        f"{YELLOW}[?]{RESET} Select scan mode:\n"
+        "  1. Full scan (default)\n"
+        "  2. Single-port diagnostic scan (-port)\n"
+        "Choice [1/2]: "
+    ).strip()
+
+    cmd = [str(GO_BINARY), "--registry", str(registry.CSV_FILE)]
+
+    if mode == "2":
+        port = input(f"{YELLOW}[?]{RESET} Enter port number (1–65535): ").strip()
+
+        if not port.isdigit() or not (1 <= int(port) <= 65535):
+            print(f"{RED}[!] Invalid port. Aborting scan.{RESET}")
+            return
+
+        cmd.extend(["--port", port])
+        print(f"{BLUE}[*]{RESET} Running single-port diagnostic scan on port {port}...")
+    else:
+        print(f"{BLUE}[*]{RESET} Running aggressive discovery (Phases 2, 4, 5)...")
+
+    stream_go_process(cmd)
 
     # 2. Consent Gate (Phase 6)
     print("\n" + "="*50)
@@ -102,37 +123,40 @@ def run_discovery_pipeline():
     handoff_to_ai()
 
 def handoff_to_ai():
-    """Surgical Intelligence Orchestration: RAW DATA -> AI -> SCRUBBER."""
-    print("\n" + "="*50)
+    """Surgical Intelligence Orchestration: RAW DATA → SCORE → AI → SCRUBBER."""
+    print("\n" + "=" * 50)
     print(f"{CYAN}{BOLD}[*] STARTING SURGICAL INTELLIGENCE LAYER{RESET}")
-    print("="*50)
+    print("=" * 50)
 
     analysis_json = OUTPUT_DIR / "analysis_summary.json"
     print(f"{BLUE}[+]{RESET} Phase 7: Correlating infrastructure patterns...")
     analysis = run_logic_engine(registry.CSV_FILE, analysis_json)
 
-    # 1. Surgical Scoring (Phase 8)
+    # --- Registry sanity check ---
     df = pd.read_csv(registry.CSV_FILE)
-    if df.empty:
-        print(f"{RED}[!] Error: Registry is empty. Cannot score.{RESET}")
+    if df.empty or not analysis.get("inventory"):
+        print(f"{RED}[!] Error: No valid targets to score.{RESET}")
         return
 
-    # Use the logic engine's internal scoring for the current target
-    # This avoids the 'Ambiguous Truth' error by using dict-mapping
-    target_data = df.iloc[-1].to_dict()
+    # --- Canonical Target Selection (SINGLE SOURCE OF TRUTH) ---
+    target = analysis["inventory"][-1]  # last processed target
 
-    is_edge = analysis['global_stats']['defense_landscape']['is_edge_protected']
-    density = analysis['global_stats']['defense_landscape']['defensive_density']
-    
-    # Inject into target_data so calculate_vms(target_data) sees them
-    target_data['is_edge_protected'] = is_edge
-    target_data['defensive_density'] = density
-    # Passing raw row to the engine we improved
-    
-    vms_score, findings = calculate_vms(target_data)
-    
-    # Update Registry for the UI Gauge
-    df.at[df.index[-1], 'VMS_Score'] = vms_score
+    # --- Canonical VMS Input (schema-locked) ---
+    vms_input = {
+        "ports": target["technical_details"]["ports"],
+        "services": target["technical_details"]["services"],
+        "banners": target["technical_details"]["os"],
+        "is_edge_protected": analysis["global_stats"]["defense_landscape"]["is_edge_protected"],
+        "defensive_density": analysis["global_stats"]["defense_landscape"]["defensive_density"],
+    }
+
+
+    # --- Phase 8: Deterministic Scoring ---
+    vms_score, findings, edge_opacity = calculate_vms(vms_input)
+    analysis["edge_opacity"] = edge_opacity
+
+    # Persist score back to registry (UI / continuity)
+    df.at[df.index[-1], "VMS_Score"] = vms_score
     df.to_csv(registry.CSV_FILE, index=False)
 
     display_vms_gauge({
@@ -141,25 +165,32 @@ def handoff_to_ai():
         "justifications": findings
     })
 
-    # 2. AI Reporting (Phase 10) - Processing RAW Context
+    # --- Phase 10: AI Intelligence Generation ---
     print(f"{BLUE}[+]{RESET} Phase 10: Generating Intelligence Report (Raw Logic Context)...")
-    raw_markdown_report = run_ai_reporting(analysis_json, REPORTS_DIR, AI_PROFILE, vms_score, node_count=1)
+    raw_markdown_report = run_ai_reporting(
+        analysis_json,
+        REPORTS_DIR,
+        AI_PROFILE,
+        vms_score,
+        node_count=1,
+        edge_opacity=edge_opacity
+    )
 
     if not raw_markdown_report:
         print(f"{RED}[!] Reporting failed. Skipping Phase 11.{RESET}")
         return
 
-    # 3. Privacy Scrubber (Phase 11) - POST-PROCESS
+    # --- Phase 11: Privacy Scrubbing (Post-AI, Final Gate) ---
     print(f"{BLUE}[+]{RESET} Phase 11: Applying privacy filters to final report...")
     final_report_path = REPORTS_DIR / f"VedicRecon_Surgical_Report_{int(time.time())}.md"
-    
+
     scrubber = PrivacyScrubber(PRIVACY_JSON)
     clean_report = scrubber.scrub(raw_markdown_report)
-    
-    with open(final_report_path, 'w', encoding='utf-8') as f:
+
+    with open(final_report_path, "w", encoding="utf-8") as f:
         f.write(clean_report)
-    print("\n")
-    print(f"\n{GREEN}{BOLD}[!] Final Intelligence Report lodged in: {REPORTS_DIR}{RESET}")
+
+    print(f"\n{GREEN}{BOLD}[!] Final Intelligence Report lodged in: {final_report_path}{RESET}")
 
 def display_vms_gauge(vms_data):
     bar_width = 20

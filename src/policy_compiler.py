@@ -7,16 +7,40 @@ class PolicyCompiler:
     def __init__(self, config: dict):
         self.config = config
 
-    def _compile_tone(self, vms_score: int) -> str:
+    # def _compile_tone(self, vms_score: int) -> str:
+    #     metrics = self.config.get("strategic_metrics", {})
+    #     if not metrics.get("tone_binding", True):
+    #         return "Neutral advisory tone."
+
+    #     if vms_score >= 80:
+    #         return "Defensive Excellence — focus on micro-optimizations."
+    #     elif vms_score >= 50:
+    #         return "Developing Posture — highlight missing hardening."
+    #     return "Critical Exposure — demand foundational remediation for the infrastructure."
+    def _compile_tone(self, vms_score: int, edge_opacity: str = "low") -> str:
+        """
+        Determines narrative tone based on maturity score and edge opacity.
+        edge_opacity: 'low' | 'medium' | 'high'
+        """
         metrics = self.config.get("strategic_metrics", {})
         if not metrics.get("tone_binding", True):
             return "Neutral advisory tone."
 
+        # 🔐 NEW: Opaque / Ghosted Edge Handling
+        if edge_opacity == "high":
+            return (
+                "Opaque Edge Posture — security controls appear intentionally non-attributable. "
+                "Focus on limits of external verification rather than assumed weakness."
+            )
+
+        # 🔢 Standard maturity-based tone
         if vms_score >= 80:
             return "Defensive Excellence — focus on micro-optimizations."
         elif vms_score >= 50:
             return "Developing Posture — highlight missing hardening."
-        return "Critical Exposure — demand foundational remediation for the infrastructure."
+        else:
+            return "Critical Exposure — demand foundational remediation for the infrastructure."
+
 
     def _compile_recommendation_limit(self, vms_score: int) -> int:
         policy = self.config.get("recommendation_policy", {})
@@ -42,21 +66,25 @@ class PolicyCompiler:
             f"- Manual Validation Required: {manual}"
         )
 
-    def compile_prompt(self, profile_data: dict, vms_score: int, node_count: int = 1) -> str:
+    def compile_prompt(self, profile_data: dict, vms_score: int, node_count: int = 1,edge_opacity: str = "low") -> str:
         """
         Injects semantic guardrails to prevent 'over-assertion' on opaque targets.
         """
-        tone = self._compile_tone(vms_score)
+        tone = self._compile_tone(vms_score, edge_opacity=edge_opacity)
         
         # MANDATORY: Observability Guardrails (The Butterfly Fix 🦋)
         # This prevents the AI from saying "There is no WAF" and forces "No WAF observed"
         semantic_calibration = (
             "\n[!] SEMANTIC GUARDRAIL (CRITICAL):\n"
             "- Do NOT claim a defense is 'absent' or 'missing' unless verified by clear error messages.\n"
-            "- USE: 'No externally observable edge protection' INSTEAD OF 'No WAF/CDN'.\n"
+            "- DO NOT name or attribute any vendor, CDN, cloud provider, or security product "
+            "unless its name appears verbatim in the raw scan evidence.\n"
+            "- USE: 'Opaque / non-attributable edge behavior' instead of naming providers (e.g., CDN, WAF).\n"
             "- USE: 'Defensive density not verifiable from external posture' INSTEAD OF 'Zero security'.\n"
             "- USE: 'Externally reachable without observable abstraction' INSTEAD OF 'Directly vulnerable'.\n"
-            "- FRAME exploitation as a 'Potential Attack Hypothesis' based on observed reachability.\n"
+            "- FRAME all attack discussion strictly as a 'Potential Attack Hypothesis'.\n"
+            "- If a service name is derived solely from port heuristics and not banner confirmation,explicitly label it as 'Unverified Service Attribution'.\n"
+            "- Do NOT assume protocol semantics or historical use cases."
         )
 
         meltdown_protocol = (

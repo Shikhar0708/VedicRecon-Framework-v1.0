@@ -12,16 +12,27 @@ import (
 )
 
 // RunRecon handles Phase 2, 4, and 5 sequentially and updates the central registry
-func RunRecon(target string, id string, flags string, registryPath string) {
+func RunRecon(target string, id string, flags string, registryPath string, port string) {
 	fmt.Printf("\n--- [ PHASE 2: BASELINE RECON | %s ] ---\n", id)
 
 	// 1. Execute Nmap and capture the output
-	args := append(strings.Fields(flags), target)
+	args := []string{}
+
+	if flags != "" {
+		args = append(args, strings.Fields(flags)...)
+	}
+
+	// 🔬 SINGLE-PORT OVERRIDE (diagnostic-safe)
+	if port != "" {
+		args = append(args, "-p", port)
+	}
+
+	args = append(args, target)
 	out, err := exec.Command("nmap", args...).CombinedOutput()
 	nmapOutput := string(out)
 
 	if err != nil {
-		fmt.Printf("[!] Nmap Error for %s: %v\n", target, err)
+		fmt.Printf("[!] Nmap returned warnings for %s (continuing): %v\n", target, err)
 	}
 
 	// --- DATA EXTRACTION ---
@@ -35,12 +46,19 @@ func RunRecon(target string, id string, flags string, registryPath string) {
 	lines := strings.Split(nmapOutput, "\n")
 	for _, line := range lines {
 		// Extract Open Ports & Service Names (e.g., "22/tcp open ssh")
-		if strings.Contains(line, "/tcp") && strings.Contains(line, "open") {
+		if strings.Contains(line, "/tcp") && (strings.Contains(line, "open") || strings.Contains(line, "tcpwrapped")) {
 			parts := strings.Fields(line)
-			if len(parts) >= 3 {
-				ports = append(ports, parts[0])      // "22/tcp"
-				services = append(services, parts[2]) // "ssh"
+			if len(parts) >= 2 {
+				ports = append(ports, parts[0])
+
+				// tcpwrapped has no service column
+				if parts[1] == "tcpwrapped" {
+					services = append(services, "tcpwrapped")
+				} else if len(parts) >= 3 {
+					services = append(services, parts[2])
+				}
 			}
+
 		}
 		// Extract OS Guess
 		if strings.Contains(line, "OS details:") || strings.Contains(line, "Running:") {
@@ -53,8 +71,11 @@ func RunRecon(target string, id string, flags string, registryPath string) {
 
 	if len(ports) > 0 {
 		foundPorts = strings.Join(ports, "|")
+	}
+	if len(services) > 0 {
 		foundServices = strings.Join(services, "|")
 	}
+
 
 	// --- PHASE 4 & 5: Web Routing (HTTPS First Logic) ---
 	fmt.Printf("[*] Launching Phase 4/5: Banner & WAF Grabbing for %s\n", target)
@@ -70,10 +91,18 @@ func RunRecon(target string, id string, flags string, registryPath string) {
 	var webErr error
 
 	// Try HTTPS first
-	resp, webErr = client.Get("https://" + target)
+	url := "https://" + target
+	if port != "" && port != "443" {
+		url = fmt.Sprintf("https://%s:%s", target, port)
+	}
+
+	resp, webErr = client.Get(url)
 	if webErr != nil {
-		// Fallback to HTTP if HTTPS fails or is not available
-		resp, webErr = client.Get("http://" + target)
+		url = "http://" + target
+		if port != "" && port != "80" {
+			url = fmt.Sprintf("http://%s:%s", target, port)
+		}
+		resp, webErr = client.Get(url)
 	}
 
 	if webErr == nil && resp != nil {

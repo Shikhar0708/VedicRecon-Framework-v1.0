@@ -11,6 +11,44 @@ from google.genai import types
 from .policy_compiler import PolicyCompiler
 
 
+
+# === HARD ZERO-KNOWLEDGE AI BOUNDARY ===
+IPV4_REGEX = re.compile(r"\b(?:\d{1,3}\.){3}\d{1,3}\b")
+IPV6_REGEX = re.compile(r"\b(?:[0-9a-fA-F]{0,4}:){2,7}[0-9a-fA-F]{0,4}\b")
+
+VENDOR_BLOCKLIST = [
+    "cloudflare",
+    "akamai",
+    "fastly",
+    "imperva",
+    "aws",
+    "azure",
+    "gcp",
+]
+
+def enforce_zero_knowledge(text: str) -> str:
+    text = IPV4_REGEX.sub("T_0", text)
+    text = IPV6_REGEX.sub("T_0", text)
+
+    for vendor in VENDOR_BLOCKLIST:
+        text = re.sub(
+            rf"\b{vendor}\b",
+            "an opaque edge provider",
+            text,
+            flags=re.IGNORECASE
+        )
+    return text
+
+def enforce_semantic_safety(text: str) -> str:
+    # Prevent hard assertions on low-confidence services
+    text = re.sub(
+        r"\b(ppp|rpcbind|unknown)\b.*?(exploitable|vulnerable|dangerous)",
+        "an unverified service with indeterminate risk",
+        text,
+        flags=re.IGNORECASE
+    )
+    return text
+
 class ProgressDisplay:
     """Handles foreground animation and time estimation for the Intelligence Layer."""
     def __init__(self, estimate=20):
@@ -73,7 +111,7 @@ class AIHandler:
         self.client = genai.Client(api_key=api_key)
 
 # FIX: Added node_count parameter to method signature
-    def generate_report(self, scrubbed_data: str, vms_score: int, node_count: int = 1):
+    def generate_report(self, scrubbed_data: str, vms_score: int, node_count: int = 1, edge_opacity:str="low"):
         """Compiles policy → prompt and generates a deterministic intelligence report."""
         active_p = self.config.get("active_profile", "strategic_architect")
         profile_data = self.config["profiles"].get(active_p)
@@ -85,7 +123,8 @@ class AIHandler:
         system_instruction = self.compiler.compile_prompt(
             profile_data=profile_data,
             vms_score=vms_score,
-            node_count=node_count
+            node_count=node_count,
+            edge_opacity=self.config.get("analysis", {}).get("edge_opacity", "low")
         )
 
         self.last_prompt_fingerprint = hash(system_instruction)
@@ -93,9 +132,16 @@ class AIHandler:
         max_retries = 3
         for attempt in range(max_retries):
             try:
+                safe_payload = enforce_zero_knowledge(scrubbed_data)
+
+                # FAIL FAST — PROTECTS YOUR REPUTATION
+                if IPV4_REGEX.search(safe_payload) or IPV6_REGEX.search(safe_payload):
+                    raise RuntimeError(
+                        "[FATAL] ZERO-KNOWLEDGE VIOLATION: Identifier leaked to AI boundary"
+                    )
                 response = self.client.models.generate_content(
                     model=self.config["api_configuration"]["model_name"],
-                    contents=f"ANONYMIZED INFRASTRUCTURE DATA:\n{scrubbed_data}",
+                    contents=f"ANONYMIZED INFRASTRUCTURE DATA:\n{safe_payload}",
                     config=types.GenerateContentConfig(
                         system_instruction=system_instruction,
                         temperature=self.config["api_configuration"]["temperature"],
@@ -142,6 +188,7 @@ def normalize_markdown_tables(text: str) -> str:
     Ensures headers, separators, and row termination.
     """
     lines = text.splitlines()
+    text = re.sub(r"\|\s*Rationale\s*\(\s*\|", "| Rationale |", text)
     fixed = []
     in_table = False
     header_seen = False
@@ -177,7 +224,8 @@ def run_ai_reporting(
     report_dir: Path,
     profile_path: Path,
     vms_score: int,
-    node_count: int = 1
+    node_count: int = 1,
+    edge_opacity: str = "low"
 ):
     """Phase 10: Policy-governed Intelligence Generation."""
     handler = AIHandler(profile_path)
@@ -203,7 +251,7 @@ def run_ai_reporting(
 
     try:
         # Pass node_count to generate_report
-        raw_report = handler.generate_report(data, vms_score, node_count=node_count)
+        raw_report = handler.generate_report(data, vms_score, node_count=node_count, edge_opacity=edge_opacity)
 
         if not raw_report or raw_report.startswith("[!]"):
             print(raw_report)
@@ -219,6 +267,7 @@ def run_ai_reporting(
         final_md = (raw_report.strip() + footer).rstrip()
         final_md = normalize_governance_noise(final_md)
         final_md = normalize_markdown_tables(final_md)
+        final_md = enforce_semantic_safety(final_md)
         final_md = re.sub(r' {5,}', ' ', final_md)
         final_md = re.sub(r'\s+$', '\n', final_md)
 

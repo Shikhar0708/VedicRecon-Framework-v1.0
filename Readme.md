@@ -1,68 +1,457 @@
-🕉️ VedicRecon Framework v1.0-alpha
-Autonomous AI-Augmented Infrastructure Reconnaissance & Risk Intelligence
+# VedicRecon — Surgical Infrastructure Reconnaissance Engine
 
-VedicRecon is a next-generation security framework that merges high-performance network discovery with strategic AI reasoning. By utilizing a Go-based execution engine (the "Muscle") and a Python-based analytical core (the "Brain"), VedicRecon automates the transition from raw packet data to executive-level intelligence reports.
+![Python](https://img.shields.io/badge/Python-3.10%2B-blue)
+![Go](https://img.shields.io/badge/Go-Deterministic_Core-cyan)
+![Recon](https://img.shields.io/badge/Recon-External_Only-critical)
+![AI](https://img.shields.io/badge/AI-Narration_Only-lightgrey)
+![License](https://img.shields.io/badge/License-GPLv3-blue)
 
-🏗️ The Hybrid Architecture
-Unlike traditional scanners, VedicRecon separates "Doing" from "Thinking":
 
-The Muscle (Go Engine): Engineered for concurrency. Handles multi-threaded Nmap execution, HTTP banner grabbing, and high-speed directory fuzzing.
+**Version:** 1.0-BETA  
+**Status:** Advisory-only | External-Posture Intelligence  
+**Author:** Shikhar Kant Sinha 
 
-The Brain (Python Orchestrator): Manages the stateful registry, enforces the "Scrub Last" privacy boundary, and performs cross-phase data correlation.
+---
 
-🚀 Key Features
-Stateful Target Registry: Persistent tracking with automated integrity sealing and session management.
+## 1. What is VedicRecon?
 
-VMS (Vedic Maturity Score): A proprietary 1-100 scoring system that evaluates infrastructure based on exposure, defensive density, and information leakage.
+VedicRecon is a surgical reconnaissance and infrastructure posture analysis engine designed to transform raw external scan data into governed, uncertainty-aware intelligence reports.
 
-Privacy-Native (Scrub Last): Anonymizes all PII (IPs, Domains, MACs) using JSON-recursive scrubbing before any data leaves your machine for AI analysis.
+Unlike traditional vulnerability scanners that attempt to enumerate and exploit everything, VedicRecon focuses on:
 
-Defensive Fingerprinting: Automated detection of WAFs (Cloudflare/Akamai) and security barriers (TCPWrapped) without attempting a bypass.
+- Externally observable posture
 
-Phase 6 Consent Gate: Strict manual control over "noisy" enumeration (Fuzzing) to prevent accidental IDS/IPS triggers.
+- Defensive abstraction & opacity
 
-🚦 The 11-Phase Operational Workflow
-VedicRecon follows a rigorous, legally-defensible reconnaissance methodology:
+- Attack surface reasoning
 
-Phase 0-1: Environment Verification & Target Ingestion.
+- What can and cannot be known from outside
 
-Phase 2-5: Baseline Recon, Service Mapping, & Defensive Fingerprinting.
+It does not claim vulnerabilities unless they are externally verifiable.
 
-Phase 6: Consent Gate for Active Directory Enumeration.
+VedicRecon sits between raw recon tools and human analysis, acting as a structured reasoning layer.
 
-Phase 7-8: Data Correlation & Immutable Master JSON Generation.
+👉 **Don’t want to read everything?**  
+Jump straight to the **[Installation & Usage](#how-to-run-vedicrecon)** section.
 
-Phase 9: Privacy Scrubbing (The Anonymization Layer).
+---
+## 2. What VedicRecon is NOT
 
-Phase 10-11: AI-Assisted Intelligence Drafting & Professional Handoff.
+This is critical.
 
-🛠️ Installation & Quick Start
-🐧 Linux
-Bash
+VedicRecon is NOT:
 
-chmod +x setup.sh
-sudo ./setup.sh
-sudo python3 main.py
-🪟 Windows
-Run setup.bat as Administrator.
+❌ A vulnerability scanner
 
-DOS
+❌ An exploitation framework
 
-venv\Scripts\activate
-python main.py
-🔑 Configuration
-Create a .env file in the root directory:
+❌ A replacement for Nmap, Burp, Metasploit, or manual testing
 
-Code snippet
+❌ A CVE auto-mapper
 
-GEMINI_API_KEY=your_api_key_here
-🛡️ Ethical Guardrails
-Non-Exploitative: VedicRecon is a reconnaissance tool. It does not contain exploit payloads or bypass logic.
+❌ A “critical findings generator”
 
-Data Sovereignty: Raw scan data never leaves the local environment.
+If you expect automated exploitation or guaranteed vulnerabilities — this tool is not for you.
+---
+## 3. Core Philosophy
 
-Attribution: All AI-generated findings are labeled as "[AI ANALYSIS – ADVISORY ONLY]" and require manual validation.
+“If something cannot be externally verified, it must not be asserted.”
 
-Developed for Security Architects and Red Teams | © 2026 VedicRecon
+VedicRecon enforces epistemic discipline:
 
-This project is licensed under the GNU GPL v3.0 to ensure transparency, user freedom, and prevent proprietary misuse of privacy-sensitive security tooling.
+- Observability ≠ Absence
+
+- Ambiguity is explicitly stated
+
+- Heuristic attribution is labeled as such
+
+- Defensive controls that intentionally obscure themselves are treated conservatively
+
+This prevents:
+
+- Over-reporting
+
+- False confidence
+
+- Vendor hallucinations
+
+- Legal and professional misrepresentation
+---
+## 4. What VedicRecon CAN do
+
+VedicRecon can:
+
+- Perform baseline network discovery using trusted tools (Nmap, ffuf)
+
+- Detect edge abstraction patterns (opaque / non-attributable behavior)
+
+- Classify service exposure vs defensive density
+
+- Reason about attack surface shape, not just port counts
+
+- Generate human-readable intelligence reports
+
+It clearly separates:
+
+- Verifiable facts
+
+- Non-verifiable elements
+
+- Hypothetical attack paths
+
+- Produce executive-safe, audit-safe reports
+---
+## 5. High-Level Architecture
+
+VedicRecon uses a strict, multi-stage pipeline:
+```text
+Recon → Registry → Logic Engine → Deterministic Scoring → AI Narration → Privacy Scrubber → Report
+```
+
+## Why this structure exists
+
+Each stage has **one responsibility**:
+
+| Stage | Purpose |
+|-----|--------|
+| Recon (Go core) | Fast, deterministic data collection |
+| Registry | Single source of truth |
+| Logic Engine | Correlation, edge detection, posture inference |
+| VMS Engine | Deterministic scoring (non-AI) |
+| AI Engine | Narrative synthesis only |
+| Privacy Scrubber | Post-generation enforcement |
+
+This prevents AI hallucination and enforces governance **before narration**.
+---
+## 6. Why AI is used (and why it is constrained)
+
+AI is **never** used to:
+
+- Detect vulnerabilities
+
+- Identify vendors
+
+- Infer internal architecture
+
+- Make claims about unseen systems
+
+AI is used **only** to:
+
+- Convert structured logic into clear human language
+- Write professional security narratives
+- Generate hypothesis-based attack reasoning
+
+All sensitive data is scrubbed **post-generation**.
+
+This is **deliberate and non-negotiable**.
+---
+## 7. Who should use VedicRecon?
+
+### ✅ Designed for
+
+**Penetration Testers**
+- Early-phase recon
+- External posture analysis
+- Client-safe reporting
+
+**Security Engineers / Blue Teams**
+- Attack surface visibility
+- Defensive abstraction analysis
+
+**Consultants / Auditors**
+- Advisory-only assessments
+- Professional defensibility
+
+### ❌ Not suitable for
+
+- Script-kiddie automation  
+- Exploit chaining  
+- Vulnerability farming  
+- Red team automation without human analysis  
+
+---
+
+## 8. How VedicRecon fits into a real pentest workflow
+
+1. Scope confirmation  
+2. Run VedicRecon  
+3. Review posture report  
+4. Decide where to focus manual testing  
+5. Proceed with targeted exploitation using other tools  
+
+VedicRecon answers:
+
+> **“Where does this infrastructure appear weak or exposed from the outside?”**
+
+It intentionally does **not** answer:
+
+> **“How do I break in automatically?”**
+
+---
+
+## 9. Scan Modes
+
+### Full Infrastructure Scan (default)
+- All ports
+- OS fingerprinting
+- Service enumeration
+
+### Single-Port Diagnostic Mode
+- Focused analysis (`-p`)
+- Sensitive environments
+- Noise reduction
+
+---
+
+## 10. Legal & Ethical Notice
+
+VedicRecon enforces:
+
+- Scope awareness  
+- Advisory-only output  
+- Non-exploitative posture  
+
+All findings are:
+
+- Externally observable  
+- Non-assertive  
+- Hypothesis-based  
+
+**Authorization is your responsibility.**
+
+---
+
+## 11. Why the name “VedicRecon”?
+
+“Vedic” refers to **structured knowledge**, not mythology.
+
+The tool emphasizes:
+
+- Clarity  
+- Order  
+- Truth boundaries  
+- Knowing what is known vs unknowable  
+
+---
+
+## 12. Current Status (BETA)
+
+Design limitations (intentional):
+
+- External posture only  
+- No authenticated scanning  
+- No internal visibility  
+- No exploitation  
+
+---
+
+## 13. Final Note
+
+VedicRecon is not built to impress with noise.  
+It is built to **think clearly under uncertainty**.
+
+If you value:
+
+- Accuracy over drama  
+- Discipline over hype  
+- Intelligence over automation  
+
+**This tool is for you.**
+
+---
+
+# How to Run VedicRecon
+
+## Supported Operating Systems
+
+- ✅ Kali Linux  
+- ✅ Ubuntu 20.04+  
+- ⚠️ Arch Linux (advanced users only)  
+
+macOS is not supported due to raw socket limitations.
+
+---
+
+## Prerequisites
+
+### Required Tools
+
+- `nmap`
+- `ffuf`
+- `go`
+- `python3` (>= 3.10)
+
+Verify:
+
+```bash
+nmap --version
+ffuf -V
+go version
+python3 --version
+```
+## Clone the Repository
+```bash
+git clone https://github.com/Shikhar0708/VedicRecon-Framework.git
+cd VedicRecon-Framework
+```
+## Build the Go Recon Core
+
+VedicRecon uses a Go binary for fast, deterministic discovery.
+```bash
+cd core
+go build -o ../bin/vr_core_linux .
+cd ..
+```
+
+Verify:
+```bash
+ls bin/vr_core_linux
+```
+## Python Environment Setup
+
+Create and activate a virtual environment:
+```bash
+python3 -m venv vedic-framework
+source vedic-framework/bin/activate
+```
+
+Install dependencies:
+```bash
+pip install -r requirements.txt
+```
+## Configuration Files Overview
+| File | Purpose |
+| ---- | ------- |
+| config/profiles.json | Defines the specific arguments and flags for Nmap and ffuf scan profiles. |
+| config/ai_profile.json | Sets the boundaries and stylistic constraints for AI-generated narratives. |
+| config/privacy.json | Contains the Zero-knowledge scrubbing rules to strip PII and sensitive data. |
+| config/wrapper.json | Handles OS tool verification to ensure dependencies like Nmap are present. |
+
+You typically do not need to modify these unless customizing behavior.
+
+## Running VedicRecon (Interactive Mode)
+
+Launch the framework as root:
+```bash
+sudo -E vedic-framework/bin/python main.py
+```
+⚠️ **Boundary License Acceptance Required (first run only)**  
+You must explicitly accept the operational boundary license before use.
+
+After that you will see the VedicRecon Station menu. 
+
+## Adding Targets
+
+From the menu:
+
+```bash
+1. Add New Target(s)
+```
+
+You can enter:
+```bash
+A single IP: 192.x.x.x
+
+A CIDR: 192.168.x.x/24
+
+A file path containing targets. Unstable for now
+```
+Targets are stored in the central registry.
+
+## Choosing Scan Mode
+
+When launching discovery, you will be prompted whether to:
+```bash
+Scan Entire Host (Default)
+
+Full port discovery
+```
+
+Single-Port Diagnostic Mode
+
+Used for:
+
+- Sensitive environments
+
+- Service validation
+
+- Noise reduction
+
+Example:
+```bash
+Scan a single port only? (y/n): y
+Enter port number: 3000
+```
+
+*This uses Nmap’s -p flag internally without changing Go binaries.*
+
+## Discovery Phases Executed
+
+VedicRecon automatically executes:
+
+| Phase | Description |
+|------:|-------------|
+| Phase 2 | Baseline Network Discovery |
+| Phase 4 | Banner Grabbing |
+| Phase 5 | Edge / WAF Signal Detection |
+| Phase 6 | Optional Directory Enumeration (ffuf) |
+| Phase 7 | Logic Correlation |
+| Phase 8 | Deterministic Scoring (VMS) |
+| Phase 10 | AI Intelligence Synthesis |
+| Phase 11 | Privacy Scrubbing |
+
+
+## Viewing Results
+
+***Registry***
+```bash
+registry/targets.csv
+```
+***Intelligence Reports***
+```bash
+reports/VedicRecon_Surgical_Report_<timestamp>.md
+```
+
+## These reports are:
+
+**Advisory-only**
+
+**Externally observable**
+
+Safe to share with stakeholders
+
+## Typical Workflow Example
+
+1. Define scope
+2. Add target(s)
+3. Run discovery
+4. Review posture report
+5. Decide where to manually test
+6. Proceed with exploitation using other tools
+
+## Common Issues
+
+### Nmap shows exit status 1
+
+Often occurs with:
+- OS detection failures
+- Permission issues
+- Filtered environments
+
+VedicRecon continues safely unless critical data is missing.
+
+## Cleanup
+
+To reset the workspace:
+```bash
+Clear Workspace (/output)
+```
+## Ethical Reminder
+
+**You must have authorization to scan any target.**
+
+**VedicRecon does not bypass protections and does not exploit systems.**
+---
+## License
+
+Licensed under the GNU General Public License v3.0 (GPL-3.0).
