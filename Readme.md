@@ -349,6 +349,27 @@ pip install -r requirements.txt
 
 You typically do not need to modify these unless customizing behavior.
 
+### Custom Wordlists
+
+VedicRecon allows users to supply their own directory or endpoint wordlists.
+
+To ensure compatibility with the discovery pipeline, any custom wordlist **must be named**:
+
+```text
+common.txt
+```
+and placed in the following directory:
+```text
+config/wordlists/common.txt
+```
+This design choice ensures:
+- A predictable, deterministic execution path
+- No dynamic file loading or unsafe path handling
+- Consistent behavior across environments
+
+If you wish to use a different wordlist, simply replace the contents of `common.txt` with your own entries.
+
+
 ## Running VedicRecon (Interactive Mode)
 
 Launch the framework as root:
@@ -508,5 +529,4 @@ Clear Workspace (/output)
 
 ---
 ## License
-
 Licensed under the GNU General Public License v3.0 (GPL-3.0).
