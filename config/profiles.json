@@ -6,21 +6,11 @@
         "flags": "-sS -Pn",
         "description": "Bypasses ping blocks, avoids full handshakes."
       },
-      "balanced": {
-        "name": "Service Enumeration",
-        "flags": "-sC -sV",
-        "description": "Standard scripts and versioning. Good for general recon."
-      },
-      "aggressive": {
-        "name": "Full Infrastructure Discovery",
-        "flags": "-sS -sV -O -p- -T4 --min-rate 5000",
-        "description": "Fastest scan, finds all ports and OS. Very noisy."
-      },
       "framework_aggressive": {
-      "name": "Framework Aggressive (Capability-Safe)",
-      "flags": "-sT -Pn -sV --open -T4",
-      "description": "Aggressive discovery safe for Go exec and containers."
-    }
+        "name": "Framework Aggressive (Capability-Safe)",
+        "flags": "-sV -sC -p- -T4",
+        "description": "Aggressive discovery safe for Go exec and containers."
+      }
     }
   },
   "ffuf": {

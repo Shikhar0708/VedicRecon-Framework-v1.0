@@ -1,4 +1,4 @@
-VERSION = "1.0-BETA"
+VERSION = "1.1-BETA"
 
 import platform
 import sys
@@ -9,6 +9,8 @@ import json
 import shutil
 import ctypes
 import os
+import re
+import ipaddress
 import pandas as pd
 from src.logic_engine import run_logic_engine
 from src.scrubbing import PrivacyScrubber
@@ -38,6 +40,26 @@ YELLOW = "\033[93m"
 RED = "\033[91m"
 BOLD = "\033[1m"
 RESET = "\033[0m"
+
+#domain_validation
+DOMAIN_REGEX = re.compile(
+    r"^(?!-)[A-Za-z0-9-]{1,63}(?<!-)"
+    r"(\.(?!-)[A-Za-z0-9-]{1,63}(?<!-))+$"
+)
+
+def is_valid_domain(value: str) -> bool:
+    return bool(DOMAIN_REGEX.fullmatch(value))
+
+#ipv4-look-alike issue resolved
+
+def looks_like_ipv4(value: str) -> bool:
+    parts = value.split(".")
+    if len(parts) != 4:
+        return False
+    return all(p.isdigit() for p in parts)
+
+
+#Root/admin validation
 
 def is_privileged():
     if platform.system() == "Windows":
@@ -226,15 +248,51 @@ def main():
         
         choice = input(f"\n{YELLOW}[?]{RESET} Select Option: ").strip()
         if choice == "1":
-            raw_val = input(f"\n{YELLOW}[?]{RESET} Enter IP, CIDR, or File Path: ").strip()
-            from src.registry import parse_bulk_input
-            expanded_targets = parse_bulk_input(raw_val)
-            if expanded_targets:
-                targets_to_add = [{"Target_Name": f"T_{i}", "Input_Value": t} for i, t in enumerate(expanded_targets)]
-                registry.add_targets_to_registry(targets_to_add)
-                if input(f"{YELLOW}[?]{RESET} Launch discovery pipeline now? (y/n): ").lower() == 'y':
-                    run_discovery_pipeline()
-                    break
+
+            raw_val = input(
+                f"\n{YELLOW}[?]{RESET} Enter target (IP / CIDR / Domain): "
+            ).strip()
+
+            if not raw_val:
+                print("[-] Empty input. Aborting.")
+                continue
+
+            try:
+                ipaddress.ip_address(raw_val)
+                target_type = "IP"
+
+            except ValueError:
+                try:
+                    ipaddress.ip_network(raw_val, strict=False)
+                    target_type = "CIDR"
+
+                except ValueError:
+                    # block IPv4-shaped garbage
+                    if looks_like_ipv4(raw_val):
+                        print("[-] Invalid IPv4 address.")
+                        continue
+
+                    if is_valid_domain(raw_val):
+                        target_type = "DOMAIN"
+                    else:
+                        print("[-] Invalid target format.")
+                        continue
+
+            target_entry = {
+                "Target_Name": raw_val,
+                "Input_Value": raw_val,
+                "Notes": f"Declared as {target_type}"
+            }
+
+            registry.add_targets_to_registry([target_entry])
+
+            if input(
+                f"{YELLOW}[?]{RESET} Launch discovery pipeline now? (y/n): "
+            ).lower() == "y":
+                run_discovery_pipeline()
+
+            break
+
         elif choice == "2":
             run_discovery_pipeline()
             break

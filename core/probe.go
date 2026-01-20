@@ -23,11 +23,14 @@ func RunRecon(target string, id string, flags string, registryPath string, port 
 	}
 
 	// 🔬 SINGLE-PORT OVERRIDE (diagnostic-safe)
-	if port != "" {
+	if port != "" && !strings.Contains(flags, "-p-") {
 		args = append(args, "-p", port)
 	}
 
 	args = append(args, target)
+	//debug the nmap command
+	fmt.Printf("[DEBUG] Final nmap args: %v\n", args)
+
 	out, err := exec.Command("nmap", args...).CombinedOutput()
 	nmapOutput := string(out)
 
@@ -76,7 +79,6 @@ func RunRecon(target string, id string, flags string, registryPath string, port 
 		foundServices = strings.Join(services, "|")
 	}
 
-
 	// --- PHASE 4 & 5: Web Routing (HTTPS First Logic) ---
 	fmt.Printf("[*] Launching Phase 4/5: Banner & WAF Grabbing for %s\n", target)
 	client := &http.Client{
@@ -108,12 +110,18 @@ func RunRecon(target string, id string, flags string, registryPath string, port 
 	if webErr == nil && resp != nil {
 		defer resp.Body.Close()
 		serverHeader := resp.Header.Get("Server")
-		
+
 		// Identify WAF / CDN signals for the Logic Engine
 		wafSignal := ""
-		if resp.Header.Get("CF-RAY") != "" { wafSignal = "Cloudflare" }
-		if resp.Header.Get("X-Akamai-Transformed") != "" { wafSignal = "Akamai" }
-		if strings.Contains(strings.ToLower(serverHeader), "cloudflare") { wafSignal = "Cloudflare" }
+		if resp.Header.Get("CF-RAY") != "" {
+			wafSignal = "Cloudflare"
+		}
+		if resp.Header.Get("X-Akamai-Transformed") != "" {
+			wafSignal = "Akamai"
+		}
+		if strings.Contains(strings.ToLower(serverHeader), "cloudflare") {
+			wafSignal = "Cloudflare"
+		}
 
 		if serverHeader != "" {
 			if osTech == "DETECTION_FAILED" {
@@ -131,7 +139,7 @@ func RunRecon(target string, id string, flags string, registryPath string, port 
 
 	// --- THE CRITICAL STEP: Update the CSV ---
 	err = UpdateRegistry(registryPath, id, osTech, foundPorts, foundServices, "ACTIVE")
-	
+
 	if err != nil {
 		fmt.Printf("[!] CSV Update Failed for %s: %v\n", id, err)
 	} else {
@@ -142,11 +150,15 @@ func RunRecon(target string, id string, flags string, registryPath string, port 
 // UpdateRegistry opens the CSV, finds the Target_ID, and overwrites TBD values
 func UpdateRegistry(path string, id string, osTech string, ports string, services string, status string) error {
 	f, err := os.Open(path)
-	if err != nil { return err }
+	if err != nil {
+		return err
+	}
 	reader := csv.NewReader(f)
 	records, err := reader.ReadAll()
 	f.Close()
-	if err != nil { return err }
+	if err != nil {
+		return err
+	}
 
 	found := false
 	for i, row := range records {
@@ -166,12 +178,16 @@ func UpdateRegistry(path string, id string, osTech string, ports string, service
 
 	// Write back to the CSV
 	f, err = os.Create(path)
-	if err != nil { return err }
+	if err != nil {
+		return err
+	}
 	defer f.Close()
 
 	writer := csv.NewWriter(f)
 	err = writer.WriteAll(records)
-	if err != nil { return err }
+	if err != nil {
+		return err
+	}
 	writer.Flush()
 	return nil
 }

@@ -172,21 +172,3 @@ def add_targets_to_registry(targets_data: list):
         
     finally:
         release_lock()
-
-def parse_bulk_input(input_str: str) -> list:
-    """Parses single IP, CIDR, or text file containing targets."""
-    targets = []
-    input_str = input_str.strip()
-
-    if os.path.isfile(input_str):
-        with open(input_str, 'r') as f:
-            return [line.strip() for line in f if line.strip()]
-
-    if "/" in input_str:
-        try:
-            network = ipaddress.ip_network(input_str, strict=False)
-            return [str(ip) for ip in network.hosts()]
-        except ValueError:
-            pass
-
-    return [input_str]

@@ -97,7 +97,7 @@ func main() {
 				RunRecon(
 					ip,
 					id,
-					cfg.Nmap.ScanProfiles["Framework_aggressive"].Flags,
+					cfg.Nmap.ScanProfiles["framework_aggressive"].Flags,
 					*registryPath,
 					*port, // diagnostic override (may be empty)
 				)
