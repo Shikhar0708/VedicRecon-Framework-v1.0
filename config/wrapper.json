@@ -1,4 +1,4 @@
 {
   "Packages_linux" :["ffuf","nmap"],
-  "Packages_windows" :["ffuf","nmap"]
+  "Packages_windows" :["nmap"]
 }

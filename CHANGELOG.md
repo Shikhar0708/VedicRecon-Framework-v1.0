@@ -2,11 +2,9 @@
 
 All notable changes to VedicRecon will be documented here.
 
-## [1.2-BETA] – 2026-01-21
+## [1.3-BETA] – 2026-01-21
 ### Added
-- Rich-rendered Markdown report preview in terminal
-- Optional PDF export for intelligence reports
-- Secure Gemini API key input using hidden prompt
+- Windows limited support
 
 ### Improved
 - AI reporting pipeline stability and determinism
@@ -15,4 +13,5 @@ All notable changes to VedicRecon will be documented here.
 ### Fixed
 - Input validation errors in report export flow
 - Registry initialization edge cases
+- Fixed windows nmap scans reading issues - Limited 
 - Fixed legal boundary acceptance issue

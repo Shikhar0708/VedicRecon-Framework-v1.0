@@ -8,12 +8,12 @@
       },
       "framework_aggressive": {
         "name": "Framework Aggressive (Capability-Safe)",
-        "flags": "-sV -sC -p- -T4",
+        "flags": "-sT -Pn -p- -T4",
         "description": "Aggressive discovery safe for Go exec and containers."
       },
       "framework_diagnostic": {
         "name": "Framework Diagnostic (Port-Scoped)",
-        "flags": "-sV -sC -T4"
+        "flags": "-sT -Pn -T4"
       }
     }
   },

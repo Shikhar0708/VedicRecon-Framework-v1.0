@@ -43,6 +43,10 @@ RED = "\033[91m"
 BOLD = "\033[1m"
 RESET = "\033[0m"
 
+
+if platform.system() == "Windows":
+    # This enables ANSI processing in the Windows console
+    os.system('color')
 #domain_validation
 DOMAIN_REGEX = re.compile(
     r"^(?!-)[A-Za-z0-9-]{1,63}(?<!-)"
@@ -139,11 +143,14 @@ def run_discovery_pipeline():
     # 2. Consent Gate (Phase 6)
     print("\n" + "="*50)
     time.sleep(0.5) # Buffer synchronization
-    consent = input(f"{YELLOW}[?]{RESET} Baseline complete. Perform noisy directory enumeration? (y/n): ").lower()
+    if platform.system() == "Windows":
+        consent="n"
+    else:
+        consent = input(f"{YELLOW}[?]{RESET} Baseline complete. Perform noisy directory enumeration? (y/n): ").lower()
     
-    if consent == 'y':
-        print(f"{BLUE}[*]{RESET} Launching Phase 6 Muscle (High-Speed Fuzzing)...")
-        stream_go_process([str(GO_BINARY), "--registry", str(registry.CSV_FILE), "--fuzz"])
+        if consent == 'y':
+            print(f"{BLUE}[*]{RESET} Launching Phase 6 Muscle (High-Speed Fuzzing)...")
+            stream_go_process([str(GO_BINARY), "--registry", str(registry.CSV_FILE), "--fuzz"])
 
     handoff_to_ai()
 
