@@ -7,7 +7,7 @@
 ![License](https://img.shields.io/badge/License-GPLv3-blue)
 
 
-**Version:** 1.2-beta  
+**Version:** 1.3-beta  
 **Status:** Advisory-only | External-Posture Intelligence  
 **Author:** Shikhar Kant Sinha 
 
